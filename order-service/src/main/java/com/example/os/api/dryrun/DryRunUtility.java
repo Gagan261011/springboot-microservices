@@ -30,6 +30,13 @@ public class DryRunUtility {
     private static final String SEPARATOR = "=".repeat(80);
     private static final String SUBSEPARATOR = "-".repeat(80);
     
+    // Configuration constants
+    private static final int MAX_VALUE_LENGTH = 80;
+    private static final int TRUNCATION_LENGTH = 77;
+    private static final int MAX_SAMPLE_BEANS = 10;
+    private static final int MAX_ERROR_DEPTH = 5;
+    private static final int MAX_STACK_TRACE_LINES = 10;
+    
     private static long startTime;
     private static long contextLoadTime;
     
@@ -138,8 +145,8 @@ public class DryRunUtility {
         dryRunProperties.put("spring.cloud.config.enabled", "false");
         dryRunProperties.put("spring.cloud.config.import-check.enabled", "false");
         
-        // Use in-memory H2 database
-        dryRunProperties.put("spring.datasource.url", "jdbc:h2:mem:dryrun");
+        // Use in-memory H2 database (consistent with default testdb configuration)
+        dryRunProperties.put("spring.datasource.url", "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
         dryRunProperties.put("spring.jpa.hibernate.ddl-auto", "create-drop");
         
         // Disable external service calls
@@ -216,8 +223,8 @@ public class DryRunUtility {
             String value = System.getenv(var);
             if (value != null) {
                 // Truncate long values
-                if (value.length() > 80) {
-                    value = value.substring(0, 77) + "...";
+                if (value.length() > MAX_VALUE_LENGTH) {
+                    value = value.substring(0, TRUNCATION_LENGTH) + "...";
                 }
                 keyEnvVars.put(var, value);
             }
@@ -319,10 +326,10 @@ public class DryRunUtility {
         if (!appBeans.isEmpty()) {
             System.out.println("\nSample Application Beans:");
             appBeans.stream()
-                .limit(10)
+                .limit(MAX_SAMPLE_BEANS)
                 .forEach(bean -> System.out.println("  - " + bean));
-            if (appBeans.size() > 10) {
-                System.out.println("  ... and " + (appBeans.size() - 10) + " more");
+            if (appBeans.size() > MAX_SAMPLE_BEANS) {
+                System.out.println("  ... and " + (appBeans.size() - MAX_SAMPLE_BEANS) + " more");
             }
         }
     }
@@ -359,21 +366,21 @@ public class DryRunUtility {
         
         Throwable cause = e.getCause();
         int depth = 0;
-        while (cause != null && depth < 5) {
+        while (cause != null && depth < MAX_ERROR_DEPTH) {
             System.err.println("  [" + depth + "] " + cause.getClass().getSimpleName() + ": " + cause.getMessage());
             cause = cause.getCause();
             depth++;
         }
         
-        System.err.println("\nStack Trace (first 10 lines):");
+        System.err.println("\nStack Trace (first " + MAX_STACK_TRACE_LINES + " lines):");
         System.err.println(SUBSEPARATOR);
         StackTraceElement[] stackTrace = e.getStackTrace();
-        for (int i = 0; i < Math.min(10, stackTrace.length); i++) {
+        for (int i = 0; i < Math.min(MAX_STACK_TRACE_LINES, stackTrace.length); i++) {
             System.err.println("  at " + stackTrace[i]);
         }
         
-        if (stackTrace.length > 10) {
-            System.err.println("  ... " + (stackTrace.length - 10) + " more");
+        if (stackTrace.length > MAX_STACK_TRACE_LINES) {
+            System.err.println("  ... " + (stackTrace.length - MAX_STACK_TRACE_LINES) + " more");
         }
     }
 }
