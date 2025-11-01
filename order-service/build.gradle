@@ -53,3 +53,19 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// Dry-run task for diagnostic startup
+tasks.register('dryRun', JavaExec) {
+	group = 'application'
+	description = 'Runs the application in dry-run mode for diagnostics'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.example.os.api.dryrun.DryRunUtility'
+	args = ['com.example.os.api.OrderServiceApplication']
+	
+	// Set JVM arguments for dry-run
+	jvmArgs = [
+		'-Dspring.profiles.active=dryrun',
+		'-Dspring.cloud.config.enabled=false',
+		'-Deureka.client.enabled=false'
+	]
+}
